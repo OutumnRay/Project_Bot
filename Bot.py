@@ -75,14 +75,14 @@ def save_database_to_excel():
             data['Link'].append(book[1])
 
     df = pd.DataFrame(data)
-    df.to_excel(database_link,
+    df.to_excel('books.xlsx',
                 index=False)
 
 
 def load_database_from_excel():
     import pandas as pd
 
-    df = pd.read_excel(database_link)
+    df = pd.read_excel('books.xlsx')
     for index, row in df.iterrows():
         key = row['Subject']
         if key not in database:
