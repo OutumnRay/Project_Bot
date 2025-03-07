@@ -1,5 +1,5 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, ApplicationBuilder, CallbackContext, MessageHandler, filters
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CommandHandler, ApplicationBuilder, CallbackContext, MessageHandler, filters, CallbackQueryHandler
 from dotenv import load_dotenv
 import pandas as pd
 import os
@@ -26,7 +26,7 @@ df = pd.read_excel(EXCEL_FILE)
 async def start(update: Update, context: CallbackContext) -> None:
     # Создаём меню кнопок для клавиатуры
     keyboard = [
-        ["Информация", "Разделы"],  # Две кнопки в одной строке
+        ["Информация", "Разделы", "Материалы всего раздела"],  # Две кнопки в одной строке
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -115,6 +115,43 @@ async def get_subjects(update: Update, context: CallbackContext):
     await update.message.reply_text("\n".join(subjects))
 
 
+def title_search(query):
+    subjects = df["Subject"].unique()
+
+    if query in subjects:
+        return df[df["Subject"] == query]["Title"].tolist()
+    else:
+        return None
+
+
+async def sections(update: Update, context: CallbackContext):
+    subjects = df["Subject"].unique()
+    buttons = [
+        [InlineKeyboardButton(subject, callback_data=f"subject_{subject}")]
+        for subject in subjects
+    ]
+
+    reply_markup = InlineKeyboardMarkup(buttons)
+    await  update.message.reply_text("Выберите раздел, чтобы увидеть все книги:", reply_markup=reply_markup)
+
+
+async def section_selected(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+
+    subject = query.data.split("_", 1)[1]
+    books = title_search(subject)
+    if books:
+        # Формируем текстовый список книг
+        books_text = "\n---------------------\n".join(books)
+        response = f"Все книги в разделе \"{subject}\":\n{books_text}\n\n"
+    else:
+        response = "К сожалению, книги для этого раздела не найдены."
+
+    # Отправляем текст с книгами
+    await query.edit_message_text(response)
+
+
 async def button_handler(update: Update, context):
     text = update.message.text
 
@@ -123,6 +160,8 @@ async def button_handler(update: Update, context):
         await info(update, context)
     elif text == "Разделы":
         await get_subjects(update, context)
+    elif text == "Материалы всего раздела":
+        await sections(update, context)
     else:
         # Ответ для неизвестной команды или некорректного текста
         await update.message.reply_text("Извините, я не понимаю эту команду. Попробуйте ещё раз!")
@@ -135,6 +174,8 @@ app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('info', info))
 app.add_handler(CommandHandler("search", search))
 app.add_handler(CommandHandler("subjects", get_subjects))
+# app.add_handler(CommandHandler("books", get_books))
+app.add_handler(CallbackQueryHandler(section_selected, pattern="subject_"))
 
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, button_handler))
 
