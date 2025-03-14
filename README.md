@@ -3,7 +3,7 @@
 
   Вагенлейтнер Никита Сергевич     <---TeamLead, DevOps, Backend developer
   
-  Чахалиди Владислав Эдуардович    <---DevOps, Backend developer
+  Чахалиди Владислав Эдуардович    <---Backend developer
   
   Турков Вячеслав Михайлович       <---Data analyst
 
