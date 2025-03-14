@@ -3,7 +3,7 @@
 
   Вагенлейтнер Никита Сергевич     <---TeamLead, DevOps, Backend developer
   
-  Чахалиди Владислав Эдуардович    <---DevOps, Backend developer
+  Чахалиди Владислав Эдуардович    <---Backend developer
   
   Турков Вячеслав Михайлович       <---Data analyst
 
@@ -17,5 +17,5 @@
 Ссылка на Telegramm bot'a: @RCTUEducationalDatabase_bot
 ------------------------------------------------------------------------
 
-Вся подробная информация о проекте и команде (включая ТЗ и используемые технологии) указаты в [Teaminfo.md](https://github.com/OutumnRay/Project_Bot/blob/d14adb175971a8472211cc1603dc20203b82b825/Teaminfo.md)
+Вся подробная информация о проекте и команде (включая ТЗ и используемые технологии) указаны в [Teaminfo.md](https://github.com/OutumnRay/Project_Bot/blob/d14adb175971a8472211cc1603dc20203b82b825/Teaminfo.md)
 ------------------------------------------------------------------------
