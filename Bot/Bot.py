@@ -5,6 +5,8 @@ import pandas as pd
 import os
 import sys
 from thefuzz import process
+import hashlib
+import asyncio
 
 
 def get_root_path(file_name):
@@ -92,12 +94,14 @@ async def search(update: Update, context: CallbackContext):
         return
 
     query = " ".join(context.args)
-    result, match_info = fuzzy_search(query)
+
+    task = asyncio.create_task(async_fuzzy_search(query))  # Запускаем поиск в фоне
+    result, match_info = await task  # Дожидаемся результата
 
     if result is not None:
-        if match_info and match_info[1] >= 70:  # Если результат достаточно точный
+        if match_info and match_info[1] >= 70:
             response = f"📚 *{result['Title']}*\n🔗 [Ссылка на книгу]({result['Link']})"
-        else:  # Если найдено, но не совсем точно
+        else:
             response = (
                 f"❗ Книга не найдена с точным соответствием.\n"
                 f"Мы нашли наиболее подходящий результат:\n"
@@ -110,9 +114,26 @@ async def search(update: Update, context: CallbackContext):
     await update.message.reply_text(response, parse_mode="Markdown")
 
 
+async def async_fuzzy_search(query):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, fuzzy_search, query)  # Запускаем в фоне
+
+
 async def get_subjects(update: Update, context: CallbackContext):
     subjects = df["Subject"].unique()
-    await update.message.reply_text("\n".join(subjects))
+    subjects = sorted(subjects)# Получаем уникальные предметы
+    subject_list = "\n".join(subjects)  # Преобразуем список в строку
+
+    max_length = 4000  # Безопасный лимит сообщения
+    if len(subject_list) > max_length:
+        # Разбиваем на части и отправляем по очереди
+        chunk_size = 50  # Количество предметов в одном сообщении (можно настроить)
+        for i in range(0, len(subjects), chunk_size):
+            await update.message.reply_text("\n".join(subjects[i:i + chunk_size]))
+    else:
+        # Если сообщение короткое, отправляем одним текстом
+        await update.message.reply_text(subject_list)
+
 
 
 def title_search(query):
@@ -126,45 +147,84 @@ def title_search(query):
 
 async def sections(update: Update, context: CallbackContext):
     subjects = df["Subject"].unique()
-    buttons = [
-        [InlineKeyboardButton(subject, callback_data=f"subject_{subject}")]
-        for subject in subjects
-    ]
 
-    reply_markup = InlineKeyboardMarkup(buttons)
-    await  update.message.reply_text("Выберите раздел, чтобы увидеть все книги:", reply_markup=reply_markup)
+    buttons = []
+    for subject in subjects:
+        callback_data = f"subject_{hashlib.md5(subject.encode()).hexdigest()[:10]}"
+        buttons.append([InlineKeyboardButton(subject, callback_data=callback_data)])
 
+    max_buttons = 50
+    if "buttons_messages" not in context.user_data:
+        context.user_data["buttons_messages"] = []
+
+    tasks = []  # Список для хранения задач
+
+    for i in range(0, len(buttons), max_buttons):
+        reply_markup = InlineKeyboardMarkup(buttons[i:i + max_buttons])
+        task = asyncio.create_task(update.message.reply_text(
+            "Выберите раздел, чтобы увидеть все книги:", reply_markup=reply_markup
+        ))
+        tasks.append(task)
+
+    responses = await asyncio.gather(*tasks)  # Запускаем все задачи одновременно
+
+    for message in responses:
+        context.user_data["buttons_messages"].append(message.message_id)
+
+
+
+
+# Глобальный словарь для хранения соответствий хэшей и названий
+subject_mapping = {hashlib.md5(subject.encode()).hexdigest()[:10]: subject for subject in df["Subject"].unique()}
 
 async def section_selected(update: Update, context: CallbackContext):
     query = update.callback_query
     await query.answer()
 
-    subject = query.data.split("_", 1)[1]
+    if "buttons_messages" in context.user_data:
+        tasks = [asyncio.create_task(query.message.chat.delete_message(msg_id))
+                 for msg_id in context.user_data["buttons_messages"]]
+        await asyncio.gather(*tasks)  # Удаляем все кнопки одновременно
+
+        context.user_data["buttons_messages"].clear()
+
+    hash_key = query.data.split("_", 1)[1]
+    subject = subject_mapping.get(hash_key, "Неизвестный раздел")
+
     books = title_search(subject)
+
     if books:
-        # Формируем текстовый список книг
         books_text = "\n---------------------\n".join(books)
         response = f"Все книги в разделе \"{subject}\":\n{books_text}\n\n"
     else:
         response = "К сожалению, книги для этого раздела не найдены."
 
-    # Отправляем текст с книгами
-    await query.edit_message_text(response)
+    max_length = 4000
+    if len(response) > max_length:
+        parts = [response[i:i + max_length] for i in range(0, len(response), max_length)]
+        tasks = [asyncio.create_task(query.message.reply_text(part)) for part in parts]
+        await asyncio.gather(*tasks)  # Отправляем все части параллельно
+    else:
+        await query.message.reply_text(response)  # Отправляем новым сообщением
 
 
 async def button_handler(update: Update, context):
     text = update.message.text
 
-    # Обрабатываем нажатия, перенаправляя к нужным действиям
+    tasks = []
+
     if text == "Информация":
-        await info(update, context)
+        tasks.append(asyncio.create_task(info(update, context)))
     elif text == "Разделы":
-        await get_subjects(update, context)
+        tasks.append(asyncio.create_task(get_subjects(update, context)))
     elif text == "Материалы всего раздела":
-        await sections(update, context)
+        tasks.append(asyncio.create_task(sections(update, context)))
     else:
-        # Ответ для неизвестной команды или некорректного текста
-        await update.message.reply_text("Извините, я не понимаю эту команду. Попробуйте ещё раз!")
+        tasks.append(asyncio.create_task(update.message.reply_text(
+            "Извините, я не понимаю эту команду. Попробуйте ещё раз!"
+        )))
+
+    await asyncio.gather(*tasks)  # Запускаем все задачи параллельно
 
 
 app = ApplicationBuilder().token(token).build()
@@ -174,7 +234,6 @@ app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('info', info))
 app.add_handler(CommandHandler("search", search))
 app.add_handler(CommandHandler("subjects", get_subjects))
-# app.add_handler(CommandHandler("books", get_books))
 app.add_handler(CallbackQueryHandler(section_selected, pattern="subject_"))
 
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, button_handler))
