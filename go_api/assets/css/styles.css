@@ -1,0 +1,41 @@
+/* style.css — твои кастомные стили */
+
+.welcome-container {
+    text-align: center;
+    margin-top: 100px;
+}
+
+.welcome-text {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #343a40;
+    animation: fadeInSlide 2s ease-out;
+}
+
+/* Анимация появления с подъёмом */
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nxe-tile {
+    width: 300px;
+    height: 150px;
+    background: linear-gradient(135deg, #3a3a3a, #1e1e1e);
+    color: white;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.nxe-tile:hover {
+    transform: scale(1.07) rotateX(5deg);
+    box-shadow: 0 12px 30px rgba(0, 255, 255, 0.4);
+}

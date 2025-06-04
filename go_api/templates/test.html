@@ -1,0 +1,58 @@
+{{ define "test" }}
+
+{{ template "header" }}
+
+<div class="row">
+    <div class="col-xs-8 col-xs-offset-2">
+        <h2>{{ .Test.Title }}</h2>
+
+        {{ if .Message }}
+        <div class="alert alert-warning" role="alert">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+    </div>
+</div>
+
+<form id="test-form" method="POST" action="/submit-test/{{ .Test.ID }}">
+    {{ range .Questions }}
+<div class="row">
+    <div class="col-xs-8 col-xs-offset-2">
+        <h4>{{ .Question.Text }}</h4>
+        {{ $questionID := .Question.ID }}
+        {{ range .Answers }}
+        <input class="form-check-input" type="radio" name="answer-{{ $questionID }}" id="answer-{{ .ID }}" value="{{ .ID }}" required>
+        <label class="form-check-label" for="answer-{{ .ID }}">{{ .Text }}</label><br>
+        {{ end }}
+    </div>
+</div>
+{{ end }}
+
+    <div class="row">
+        <div class="col-xs-8 col-xs-offset-2">
+            <h3>Ваши данные</h3>
+            <div class="form-group">
+                <label for="telegram_id">Telegram ID</label>
+                <input type="text" class="form-control" id="telegram_id" name="telegram_id" required>
+            </div>
+            <div class="form-group">
+                <label for="first_name">Имя</label>
+                <input type="text" class="form-control" id="first_name" name="first_name" required>
+            </div>
+            <div class="form-group">
+                <label for="last_name">Фамилия</label>
+                <input type="text" class="form-control" id="last_name" name="last_name" required>
+            </div>
+            <div class="form-group">
+                <label for="group_name">Группа</label>
+                <input type="text" class="form-control" id="group_name" name="group_name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Завершить Тест</button>
+        </div>
+    </div>
+</form>
+
+{{ template "footer" }}
+
+{{ end }}

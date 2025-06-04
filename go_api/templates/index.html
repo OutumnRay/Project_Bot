@@ -1,0 +1,160 @@
+{{ define "index" }}
+
+{{ template "header" }}
+
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #fff;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #222;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .welcome-container {
+    position: relative;
+    top: 20vh;
+    font-weight: 700;
+    font-size: 3.2rem;
+    text-align: center;
+    user-select: none;
+    color: #222;
+    z-index: 10;
+    letter-spacing: 0.05em;
+  }
+
+  .welcome-container span {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(-40px) scale(0.8);
+    animation: letterAppear 0.7s forwards cubic-bezier(0.5, 1.2, 0.8, 1);
+  }
+
+  /* Автоматически зададим задержки через JS — здесь для наглядности можно оставить */
+  /* Например для первых 15 букв */
+  .welcome-container span:nth-child(1)  { animation-delay: 0.05s; }
+  .welcome-container span:nth-child(2)  { animation-delay: 0.10s; }
+  .welcome-container span:nth-child(3)  { animation-delay: 0.15s; }
+  .welcome-container span:nth-child(4)  { animation-delay: 0.20s; }
+  .welcome-container span:nth-child(5)  { animation-delay: 0.25s; }
+  .welcome-container span:nth-child(6)  { animation-delay: 0.30s; }
+  .welcome-container span:nth-child(7)  { animation-delay: 0.35s; }
+  .welcome-container span:nth-child(8)  { animation-delay: 0.40s; }
+  .welcome-container span:nth-child(9)  { animation-delay: 0.45s; }
+  .welcome-container span:nth-child(10) { animation-delay: 0.50s; }
+  .welcome-container span:nth-child(11) { animation-delay: 0.55s; }
+  .welcome-container span:nth-child(12) { animation-delay: 0.60s; }
+  .welcome-container span:nth-child(13) { animation-delay: 0.65s; }
+  .welcome-container span:nth-child(14) { animation-delay: 0.70s; }
+  .welcome-container span:nth-child(15) { animation-delay: 0.75s; }
+
+  @keyframes letterAppear {
+    0% {
+      opacity: 0;
+      transform: translateY(-40px) scale(0.8);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(10px) scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Канвас с частицами на фоне */
+  #particles-js {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    background: transparent;
+  }
+</style>
+
+<!-- Частицы -->
+<canvas id="particles-js"></canvas>
+
+<div class="welcome-container" aria-label="Добро пожаловать на TestPlatform!">
+  <!-- Каждую букву обернем в span для анимации -->
+  <span>Д</span><span>о</span><span>б</span><span>р</span><span>о</span> 
+  <span>п</span><span>о</span><span>ж</span><span>а</span><span>л</span><span>о</span><span>в</span><span>а</span><span>т</span><span>ь</span> 
+  <span>н</span><span>а</span> 
+  <span>T</span><span>e</span><span>s</span><span>t</span><span>P</span><span>l</span><span>a</span><span>t</span><span>f</span><span>o</span><span>r</span><span>m</span><span>!</span>
+</div>
+
+<script>
+// Частицы — улучшенный хаотичный быстрый эффект
+
+const canvas = document.getElementById('particles-js');
+const ctx = canvas.getContext('2d');
+
+let width, height;
+function resize() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor() {
+    this.x = Math.random() * width;
+    this.y = Math.random() * height;
+    this.radius = Math.random() * 2 + 1;
+    this.speedX = (Math.random() - 0.5) * 2.5;  // Быстрые хаотичные движения по X (-1.25..1.25)
+    this.speedY = (Math.random() - 0.5) * 2.5;  // Быстрые хаотичные движения по Y
+    this.color = `rgba(170,170,170,${Math.random() * 0.5 + 0.3})`;
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+
+    // Обработка выхода за границы — частицы появятся с другой стороны
+    if (this.x > width) this.x = 0;
+    else if (this.x < 0) this.x = width;
+
+    if (this.y > height) this.y = 0;
+    else if (this.y < 0) this.y = height;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = '#aaa';
+    ctx.shadowBlur = 4;
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+let particlesArray = [];
+function initParticles() {
+  particlesArray = [];
+  for(let i=0; i<120; i++) {
+    particlesArray.push(new Particle());
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, width, height);
+  particlesArray.forEach(p => {
+    p.update();
+    p.draw();
+  });
+  requestAnimationFrame(animate);
+}
+
+initParticles();
+animate();
+</script>
+
+{{ template "footer" }}
+
+{{ end }}

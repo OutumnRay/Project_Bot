@@ -1,0 +1,366 @@
+{{ define "write" }}
+
+{{ template "header" }}
+
+
+<!-- Подключаем Font Awesome CDN для иконок -->
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  rel="stylesheet"
+/>
+<canvas id="question-particles-bg"></canvas>
+
+<style>
+  body {
+    background: #f4f7fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+  }
+  #question-particles-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    background: #f4f7fa;
+  }
+
+  .row {
+    position: relative;
+    z-index: 2;
+  }
+
+  h2 {
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+    margin-bottom: 1.5rem;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-weight: 600;
+  }
+
+  form {
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgb(0 0 0 / 0.1);
+    max-width: 700px;
+    margin: 0 auto 50px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+    color: #34495e;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.8px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+
+  input[type="text"]:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.4);
+  }
+
+  .btn {
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 10px 22px;
+    cursor: pointer;
+    border: none;
+    transition:
+      background-color 0.3s ease,
+      transform 0.2s ease,
+      box-shadow 0.3s ease;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+
+  .btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+  }
+
+  .btn-primary {
+    background-color: #3498db;
+    color: white;
+    margin-right: 12px;
+  }
+
+  .btn-primary:hover {
+    background-color: #2980b9;
+  }
+
+  .btn-success {
+    background-color: #27ae60;
+    color: white;
+  }
+
+  .btn-success:hover {
+    background-color: #1e8449;
+  }
+
+  .btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+    font-size: 0.85rem;
+    padding: 6px 16px;
+    margin-top: 8px;
+  }
+
+  .btn-secondary:hover {
+    background-color: #7f8c8d;
+  }
+
+  .question {
+    background: #fafafa;
+    padding: 20px 25px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border: 1px solid #dfe6e9;
+
+    opacity: 0;
+    animation: fadeInUp 0.5s forwards;
+  }
+
+  .question h3 {
+    margin-top: 0;
+    color: #2c3e50;
+  }
+
+  .answers-container h4 {
+    margin-top: 20px;
+    color: #34495e;
+  }
+
+  .answer {
+    margin-bottom: 15px;
+
+    opacity: 0;
+    animation: fadeInUp 0.4s forwards;
+  }
+
+  .form-check {
+    margin-top: 6px;
+  }
+
+  .form-check-input {
+    cursor: pointer;
+  }
+
+  .form-check-label {
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  /* Анимация плавного появления */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Иконки внутри кнопок */
+  .btn .fa {
+    font-size: 1.1rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 767px) {
+    form {
+      padding: 20px 20px;
+      margin: 0 10px 40px;
+    }
+  }
+</style>
+
+<div class="row">
+    <div class="col-xs-8 col-xs-offset-2">
+        <h2>Создать Тест</h2>
+
+        {{ if .Message }}
+        <div class="alert alert-danger" role="alert">
+            {{ .Message }}
+        </div>
+        {{ end }}
+
+        <form id="test-form" method="POST" action="/save">
+            <div class="form-group">
+                <label for="admin_telegram_id">Telegram ID администратора</label>
+                <input type="text" class="form-control" id="admin_telegram_id" name="admin_telegram_id" value="{{.TelegramID}}" required>
+            </div>
+            <div class="form-group">
+                <label for="test-title">Название Теста</label>
+                <input type="text" class="form-control" id="test-title" name="test-title" value="{{.Title}}" required>
+            </div>
+
+            <div id="questions-container">
+                <!-- Вопросы будут динамически добавляться сюда -->
+            </div>
+
+            <button type="button" id="add-question" class="btn btn-primary">
+              <i class="fa fa-plus"></i> Добавить Вопрос
+            </button>
+            <button type="submit" class="btn btn-success">
+              <i class="fa fa-save"></i> Сохранить Тест
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const questionsContainer = document.getElementById('questions-container');
+    const addQuestionButton = document.getElementById('add-question');
+    let questionCount = 0;
+
+    addQuestionButton.addEventListener('click', () => {
+        questionCount++;
+        const questionDiv = document.createElement('div');
+        questionDiv.classList.add('question');
+        questionDiv.style.animationDelay = '0.1s'; // немного задержки для анимации
+        questionDiv.innerHTML = `
+            <h3>Вопрос ${questionCount}</h3>
+            <div class="form-group">
+                <label for="question-text-${questionCount}">Текст Вопроса</label>
+                <input type="text" class="form-control" id="question-text-${questionCount}" name="question-text-${questionCount}" required>
+            </div>
+            <div class="answers-container">
+                <h4>Варианты Ответа</h4>
+                <div class="form-group answer" style="animation-delay: 0.15s;">
+                    <label for="answer-1-${questionCount}">Ответ 1</label>
+                    <input type="text" class="form-control answer-text" id="answer-1-${questionCount}" name="answer-1-${questionCount}" required>
+                    <div class="form-check">
+                      <input class="form-check-input is-correct" type="radio" name="correct-answer-${questionCount}" id="correct-answer-1-${questionCount}" value="1" required>
+                      <label class="form-check-label" for="correct-answer-1-${questionCount}">Правильный ответ</label>
+                    </div>
+                </div>
+                <div class="form-group answer" style="animation-delay: 0.3s;">
+                    <label for="answer-2-${questionCount}">Ответ 2</label>
+                    <input type="text" class="form-control answer-text" id="answer-2-${questionCount}" name="answer-2-${questionCount}" required>
+                    <div class="form-check">
+                      <input class="form-check-input is-correct" type="radio" name="correct-answer-${questionCount}" id="correct-answer-2-${questionCount}" value="2" required>
+                      <label class="form-check-label" for="correct-answer-2-${questionCount}">Правильный ответ</label>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary add-answer">
+                  <i class="fa fa-plus"></i> Добавить Ответ
+                </button>
+            </div>
+        `;
+        questionsContainer.appendChild(questionDiv);
+
+        const addAnswerButtons = questionDiv.querySelectorAll('.add-answer');
+        addAnswerButtons.forEach(button => {
+            button.addEventListener('click', () => {
+              const answerCount = questionDiv.querySelectorAll('.answer').length + 1;
+              const newAnswerDiv = document.createElement('div');
+              newAnswerDiv.classList.add('form-group', 'answer');
+              newAnswerDiv.style.animationDelay = '0.3s';
+              newAnswerDiv.innerHTML = `
+                  <label for="answer-${answerCount}-${questionCount}">Ответ ${answerCount}</label>
+                  <input type="text" class="form-control answer-text" id="answer-${answerCount}-${questionCount}" name="answer-${answerCount}-${questionCount}" required>
+                  <div class="form-check">
+                    <input class="form-check-input is-correct" type="radio" name="correct-answer-${questionCount}" id="correct-answer-${answerCount}-${questionCount}" value="${answerCount}" required>
+                    <label class="form-check-label" for="correct-answer-${answerCount}-${questionCount}">Правильный ответ</label>
+                  </div>
+              `;
+              questionDiv.querySelector('.answers-container').appendChild(newAnswerDiv);
+            });
+        });
+    });
+    // Плавающие вопросительные знаки
+const canvasQ = document.getElementById('question-particles-bg');
+const ctxQ = canvasQ.getContext('2d');
+let widthQ, heightQ;
+
+function resizeQ() {
+  widthQ = canvasQ.width = window.innerWidth;
+  heightQ = canvasQ.height = window.innerHeight;
+}
+resizeQ();
+window.addEventListener('resize', resizeQ);
+
+class QuestionParticle {
+  constructor() {
+    this.x = Math.random() * widthQ;
+    this.y = heightQ + Math.random() * 100;
+    this.speedY = -(Math.random() * 0.5 + 0.3);
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotationSpeed = (Math.random() - 0.5) * 0.01;
+    this.opacity = Math.random() * 0.3 + 0.2;
+    this.fontSize = Math.random() * 18 + 16;
+    this.char = "?";
+  }
+
+  update() {
+    this.y += this.speedY;
+    this.rotation += this.rotationSpeed;
+    if (this.y < -20) {
+      this.y = heightQ + Math.random() * 50;
+      this.x = Math.random() * widthQ;
+    }
+  }
+
+  draw() {
+    ctxQ.save();
+    ctxQ.translate(this.x, this.y);
+    ctxQ.rotate(this.rotation);
+    ctxQ.globalAlpha = this.opacity;
+    ctxQ.font = `${this.fontSize}px Arial`;
+    ctxQ.fillStyle = "#aab8c2";
+    ctxQ.fillText(this.char, -this.fontSize / 2, this.fontSize / 2);
+    ctxQ.restore();
+  }
+}
+
+let questionParticles = [];
+for (let i = 0; i < 60; i++) {
+  questionParticles.push(new QuestionParticle());
+}
+
+function animateQuestions() {
+  ctxQ.clearRect(0, 0, widthQ, heightQ);
+  questionParticles.forEach(p => {
+    p.update();
+    p.draw();
+  });
+  requestAnimationFrame(animateQuestions);
+}
+animateQuestions();
+
+</script>
+
+{{ template "footer" }}
+
+{{ end }}

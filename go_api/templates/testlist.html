@@ -1,0 +1,204 @@
+{{ define "testlist" }}
+
+{{ template "header" }}
+
+<style>
+  /* Карточки тестов */
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 10; /* чтобы быть поверх канваса */
+  }
+
+  .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+
+  .card-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #333;
+    margin: 0;
+  }
+
+  .btn-primary {
+    padding: 0.5rem 1.2rem;
+  }
+
+  /* Анимация подпрыгивания при загрузке */
+  @keyframes jump {
+    0%   { transform: translateY(0); }
+    40%  { transform: translateY(-12px); }
+    70%  { transform: translateY(0); }
+    100% { transform: translateY(0); }
+  }
+
+  .jump {
+    animation-name: jump;
+    animation-duration: 0.8s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Контейнер списка и фон частиц */
+  .container {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Канвас с частицами */
+  #particles-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    background: #fff;
+  }
+
+  .search-container {
+    margin-bottom: 2rem;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .search-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: none;
+  }
+
+</style>
+
+<!-- Канвас для частиц -->
+<canvas id="particles-bg"></canvas>
+
+<div class="container my-4">
+  <h2 class="mb-4">Список доступных тестов</h2>
+
+  <div class="search-container">
+    <form method="GET" action="/testlist">
+      <input type="text" class="form-control search-input" id="search" name="search" placeholder="Поиск по названию теста..." value="{{ .SearchQuery }}">
+    </form>
+  </div>
+
+  {{ if .Tests }}
+    {{ range .Tests }}
+    <div class="card">
+      <h5 class="card-title">{{ .Title }}</h5>
+      <a href="/test/{{ .ID }}" class="btn btn-primary">Пройти тест</a>
+    </div>
+    {{ end }}
+  {{ else }}
+    <div class="alert alert-info text-center" role="alert">
+        Пока нет доступных тестов{{ if .SearchQuery }} по запросу "{{ .SearchQuery }}"{{ end }}.
+    </div>
+  {{ end }}
+
+</div>
+
+<script>
+  // Анимация частиц, летящих снизу вверх
+
+  const canvas = document.getElementById('particles-bg');
+  const ctx = canvas.getContext('2d');
+  let width, height;
+
+  function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * width;
+      this.y = height + (Math.random() * 100);  // стартуют чуть ниже экрана
+      this.radius = Math.random() * 2 + 1;
+      this.speedY = -(Math.random() * 1.5 + 0.5); // скорость вверх (0.5 - 2)
+      this.speedX = (Math.random() - 0.5) * 0.6; // слабое колебание по горизонтали
+      this.opacity = Math.random() * 0.4 + 0.3;
+      this.color = `rgba(100,100,100,${this.opacity})`;
+    }
+
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+
+      // Если частица улетела выше экрана, вернуть вниз
+      if (this.y + this.radius < 0) {
+        this.x = Math.random() * width;
+        this.y = height + 20 + Math.random() * 50;
+        this.speedY = -(Math.random() * 1.5 + 0.5);
+        this.speedX = (Math.random() - 0.5) * 0.6;
+        this.opacity = Math.random() * 0.4 + 0.3;
+        this.color = `rgba(100,100,100,${this.opacity})`;
+      }
+    }
+
+    draw() {
+      ctx.beginPath();
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = '#bbb';
+      ctx.shadowBlur = 3;
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  let particlesArray = [];
+  function initParticles() {
+    particlesArray = [];
+    for(let i=0; i<140; i++) {
+      particlesArray.push(new Particle());
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    particlesArray.forEach(p => {
+      p.update();
+      p.draw();
+    });
+    requestAnimationFrame(animate);
+  }
+
+  initParticles();
+  animate();
+
+  // Анимация карточек при загрузке
+  window.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, i) => {
+      setTimeout(() => {
+        card.classList.add('jump');
+        card.addEventListener('animationend', () => {
+          card.classList.remove('jump');
+        }, { once: true });
+      }, i * 250);
+    });
+  });
+</script>
+
+{{ template "footer" }}
+
+{{ end }}

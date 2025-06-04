@@ -1,0 +1,20 @@
+{{ define "result" }}
+
+{{ template "header" }}
+
+<div class="container my-4">
+    <div class="row">
+        <div class="col-xs-8 col-xs-offset-2 text-center">
+            <h2>Результаты Теста</h2>
+            <div class="alert alert-success" role="alert">
+                Поздравляем, {{ .FirstName }} {{ .LastName }}!
+                Вы набрали {{ .CorrectAnswers }} из {{ .TotalQuestions }} правильных ответов.
+            </div>
+            <a href="/testlist" class="btn btn-primary">Вернуться к списку тестов</a>
+        </div>
+    </div>
+</div>
+
+{{ template "footer" }}
+
+{{ end }}
