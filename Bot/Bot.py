@@ -29,6 +29,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     # Создаём меню кнопок для клавиатуры
     keyboard = [
         ["Информация", "Разделы", "Материалы всего раздела"],  # Две кнопки в одной строке
+        ["TestPlatform"] # кнопка для редиректа на сайт с тестами
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -219,6 +220,18 @@ async def button_handler(update: Update, context):
         tasks.append(asyncio.create_task(get_subjects(update, context)))
     elif text == "Материалы всего раздела":
         tasks.append(asyncio.create_task(sections(update, context)))
+    elif text == "TestPlatform":
+        user_id = update.message.from_user.id
+        site_url = f"http://10.192.202.230:8080/"
+
+        keyboard = [[InlineKeyboardButton("Перейти на TestPlatform", url=site_url)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        tasks.append(asyncio.create_task(update.message.reply_text(
+        "Нажмите на кнопку ниже, чтобы перейти:",
+        reply_markup=reply_markup
+    )))
+
     else:
         tasks.append(asyncio.create_task(update.message.reply_text(
             "Извините, я не понимаю эту команду. Попробуйте ещё раз!"
@@ -227,6 +240,10 @@ async def button_handler(update: Update, context):
     await asyncio.gather(*tasks)  # Запускаем все задачи параллельно
 
 
+async def show_id(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    await update.message.reply_text(f"Ваш Telegram ID: {user_id}")
+
 app = ApplicationBuilder().token(token).build()
 
 # Добавляем обработчики команд
@@ -234,6 +251,7 @@ app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('info', info))
 app.add_handler(CommandHandler("search", search))
 app.add_handler(CommandHandler("subjects", get_subjects))
+app.add_handler(CommandHandler("id", show_id))
 app.add_handler(CallbackQueryHandler(section_selected, pattern="subject_"))
 
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, button_handler))
